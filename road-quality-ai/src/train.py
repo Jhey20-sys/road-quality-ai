@@ -45,6 +45,6 @@ for epoch in range(EPOCHS):
 
     print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {total_loss:.4f}")
 
-print(" Training complete")
+print("Training complete")
 
 torch.save(model.state_dict(), "model.pth")
