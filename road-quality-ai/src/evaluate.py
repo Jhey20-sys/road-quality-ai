@@ -14,9 +14,9 @@ from models.resnet18 import get_resnet18
 
 
 def evaluate():
-    # -----------------------------
+    
     # Data transformation
-    # -----------------------------
+    
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor()
@@ -33,9 +33,9 @@ def evaluate():
         shuffle=False
     )
 
-    # -----------------------------
+    
     # Load model
-    # -----------------------------
+    
     # model = CustomCNN(NUM_CLASSES)
     model = get_resnet18(NUM_CLASSES)
 
@@ -46,9 +46,9 @@ def evaluate():
     model.to(DEVICE)
     model.eval()
 
-    # -----------------------------
+    
     # Evaluation
-    # -----------------------------
+    
     all_preds = []
     all_labels = []
     correct = 0
@@ -68,15 +68,15 @@ def evaluate():
             correct += (preds == labels).sum().item()
             total += labels.size(0)
 
-    # -----------------------------
+    
     # Accuracy
-    # -----------------------------
+    
     accuracy = correct / total
     print(f"\n✅ Test Accuracy: {accuracy:.4f}")
 
-    # -----------------------------
+    
     # Confusion Matrix
-    # -----------------------------
+    
     cm = confusion_matrix(all_labels, all_preds)
 
     plt.figure(figsize=(8, 6))
@@ -95,9 +95,9 @@ def evaluate():
     plt.tight_layout()
     plt.show()
 
-    # -----------------------------
+    
     # Precision, Recall, F1
-    # -----------------------------
+    
     report = classification_report(
         all_labels,
         all_preds,
@@ -108,9 +108,9 @@ def evaluate():
     print("\n📊 Classification Report:")
     print(report)
 
-    # -----------------------------
+    
     # Highlight recall for severe damage
-    # -----------------------------
+   
     print("🚨 IMPORTANT:")
     print("Recall for 'very_poor' indicates how well the model detects severely damaged roads.")
     print("Higher recall = fewer dangerous roads missed.")

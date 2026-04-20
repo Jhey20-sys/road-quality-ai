@@ -15,21 +15,20 @@ TEST_RATIO = 0.2
 classes = ["good", "satisfactory", "poor", "very_poor"]
 valid_exts = (".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG")
 
-# -----------------------------
+
 # Create output folders
-# -----------------------------
+
 for split in ["train", "val", "test"]:
     for cls in classes:
         os.makedirs(os.path.join(DEST_DIR, split, cls), exist_ok=True)
 
-# -----------------------------
 # Split each class
-# -----------------------------
+
 for cls in classes:
     class_path = os.path.join(SOURCE_DIR, cls)
 
     if not os.path.exists(class_path):
-        print(f"❌ Folder not found: {class_path}")
+        print(f"Folder not found: {class_path}")
         continue
 
     images = [
@@ -37,10 +36,10 @@ for cls in classes:
         if f.endswith(valid_exts)
     ]
 
-    print(f"\n📁 {cls}: {len(images)} images found")
+    print(f"\n 🖼️{cls}: {len(images)} images found")
 
     if len(images) == 0:
-        print(f"⚠️ WARNING: No images in '{cls}' — skipping")
+        print(f"WARNING: No images in '{cls}' — skipping")
         continue
 
     random.shuffle(images)
@@ -71,7 +70,7 @@ for cls in classes:
         )
 
     print(
-        f"✅ {cls}: "
+        f" ☑️{cls}: "
         f"{len(train_images)} train | "
         f"{len(val_images)} val | "
         f"{len(test_images)} test"
