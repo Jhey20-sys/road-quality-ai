@@ -1,5 +1,8 @@
-**Requirements**
-
-**Please install the required libraries using the following command:**
-- pip install torch torchvision scikit-learn matplotlib seaborn
-- update your python version to 3.8 or higher if you encounter compatibility issues.
+streamlit
+torch==2.2.2
+torchvision==0.17.2
+numpy
+pillow
+scikit-learn
+matplotlib
+seaborn
