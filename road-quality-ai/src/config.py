@@ -8,4 +8,4 @@ LEARNING_RATE = 0.001
 NUM_CLASSES = 4
 DEVICE = "cpu"
 
-CLASS_NAMES = ['good', 'satisfactory', 'poor', 'very_poor']
+CLASS_NAMES = ['good', 'poor', 'satisfactory', 'very_poor']
