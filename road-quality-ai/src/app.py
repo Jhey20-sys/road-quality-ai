@@ -66,7 +66,7 @@ def predict_batch(images):
 
 st.markdown("""
 ### 🧾 Classification Legend
-- ✅ **Good** – Road is in good condition  
+- 🥳 **Good** – Road is in good condition  
 - ℹ️ **Satisfactory** – Minor wear, monitoring recommended  
 - ⚠️ **Poor** – Repair recommended  
 - 🚨 **Very Poor** – Immediate repair required  
@@ -121,4 +121,4 @@ if uploaded_files:
                 st.info("ℹ️ Satisfactory road condition. Monitoring is advised.")
 
             elif label == "good":
-                st.success("✅ Good road condition. No action required.")
+                st.success("🥳 Good road condition. No action required.")
