@@ -6,6 +6,6 @@ EPOCHS = 10
 LEARNING_RATE = 0.001
 
 NUM_CLASSES = 4
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cpu"
 
 CLASS_NAMES = ['good', 'satisfactory', 'poor', 'very_poor']
