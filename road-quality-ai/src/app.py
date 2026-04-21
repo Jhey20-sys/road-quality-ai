@@ -78,7 +78,7 @@ uploaded_files = st.file_uploader(
 )
 
 if uploaded_files:
-    st.subheader("🖼 Uploaded Images")
+    st.subheader("🖼️ Uploaded Images")
 
     images = []
     for file in uploaded_files:
@@ -93,7 +93,7 @@ if uploaded_files:
         with st.spinner("Analyzing road conditions... Please wait"):
             results = predict_batch(images)
 
-        st.subheader("✅ Prediction Results")
+        st.subheader("☑️ Prediction Results")
 
         # -----------------------------
         # Display results
@@ -108,4 +108,4 @@ if uploaded_files:
             elif label == "poor":
                 st.warning("⚠️ Road condition is poor. Maintenance recommended.")
             else:
-                st.success("✅ Road condition is acceptable.")
+                st.success("☑️ Road condition is acceptable.")
