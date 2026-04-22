@@ -33,7 +33,6 @@ def evaluate():
         shuffle=False
     )
 
-    
     # Load model
     
     # model = CustomCNN(NUM_CLASSES)
@@ -46,7 +45,6 @@ def evaluate():
     model.to(DEVICE)
     model.eval()
 
-    
     # Evaluation
     
     all_preds = []
@@ -68,13 +66,11 @@ def evaluate():
             correct += (preds == labels).sum().item()
             total += labels.size(0)
 
-    
     # Accuracy
     
     accuracy = correct / total
     print(f"\n✅ Test Accuracy: {accuracy:.4f}")
 
-    
     # Confusion Matrix
     
     cm = confusion_matrix(all_labels, all_preds)
@@ -95,7 +91,6 @@ def evaluate():
     plt.tight_layout()
     plt.show()
 
-    
     # Precision, Recall, F1
     
     report = classification_report(
@@ -107,7 +102,6 @@ def evaluate():
 
     print("\n📊 Classification Report:")
     print(report)
-
     
     # Highlight recall for severe damage
    

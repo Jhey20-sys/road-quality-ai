@@ -8,10 +8,8 @@ from config import *
 #from models.custom_cnn import CustomCNN
 from models.resnet18 import get_resnet18
 
-
-# -------------------------------------------------
 # Load model once
-# -------------------------------------------------
+
 def load_model():
     #model = CustomCNN(NUM_CLASSES)
     model = get_resnet18(NUM_CLASSES)
@@ -23,19 +21,15 @@ def load_model():
     model.eval()
     return model
 
-
-# -------------------------------------------------
 # Image preprocessing
-# -------------------------------------------------
+
 transform = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
     transforms.ToTensor()
 ])
 
-
-# -------------------------------------------------
 # Predict single image
-# -------------------------------------------------
+
 def predict_image(model, image_path):
 
     image = Image.open(image_path).convert("RGB")
@@ -48,10 +42,8 @@ def predict_image(model, image_path):
 
     return CLASS_NAMES[predicted.item()], conf.item()
 
-
-# -------------------------------------------------
 # Predict all images in a folder (real-life simulation)
-# -------------------------------------------------
+
 def predict_folder(folder_path):
     model = load_model()
 
@@ -66,10 +58,8 @@ def predict_folder(folder_path):
             print(f"   ➜ Condition : {label}")
             print(f"   ➜ Confidence: {confidence * 100:.2f}%\n")
 
-
-# -------------------------------------------------
 # Main execution
-# -------------------------------------------------
+
 if __name__ == "__main__":
 
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
