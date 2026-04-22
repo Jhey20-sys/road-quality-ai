@@ -8,20 +8,16 @@ import streamlit as st
 from config import *
 from models.resnet18 import get_resnet18
 
-
-# -----------------------------
 # Page config
-# -----------------------------
+
 st.set_page_config(
     page_title="Road Quality Assessment",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-
-# -----------------------------
 # Load model (cached)
-# -----------------------------
+
 @st.cache_resource
 def load_model():
     model = get_resnet18(NUM_CLASSES)
@@ -36,18 +32,14 @@ def load_model():
     model.eval()
     return model
 
-
 model = load_model()
 
-
-# -----------------------------
 # Image preprocessing
-# -----------------------------
+
 transform = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
     transforms.ToTensor()
 ])
-
 
 def predict_batch(images):
     results = []
@@ -65,17 +57,15 @@ def predict_batch(images):
     return results
 
 st.markdown("""
-### 🧾 Classification Legend
+### 📋 Classification Legend
 - 🥳 **Good** – Road is in good condition  
 - ℹ️ **Satisfactory** – Minor wear, monitoring recommended  
 - ⚠️ **Poor** – Repair recommended  
 - 🚨 **Very Poor** – Immediate repair required  
 """)
 
-
-# -----------------------------
 # UI
-# -----------------------------
+
 st.title("🚧 Road Quality Assessment System")
 st.write("Upload one or more road images to assess their condition.")
 
@@ -94,18 +84,16 @@ if uploaded_files:
         images.append(img)
         st.image(img, caption=file.name, width=600)
 
-    # -----------------------------
     # Predict button + loading
-    # -----------------------------
+
     if st.button("🔍 Predict All Images"):
         with st.spinner("Analyzing road conditions... Please wait"):
             results = predict_batch(images)
 
         st.subheader("☑️ Prediction Results")
 
-        # -----------------------------
         # Display results
-        # -----------------------------
+   
         for idx, (label, confidence) in enumerate(results):
             st.markdown(f"### 📌 Image {idx + 1}")
             st.write(f"**Condition:** {label}")
