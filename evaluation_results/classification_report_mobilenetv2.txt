@@ -1,0 +1,13 @@
+Model: mobilenetv2
+Test Accuracy: 0.9737
+
+              precision    recall  f1-score   support
+
+        good     1.0000    1.0000    1.0000       170
+        poor     0.9861    0.8875    0.9342        80
+satisfactory     0.9115    0.9904    0.9493       104
+   very_poor     1.0000    0.9846    0.9922        65
+
+    accuracy                         0.9737       419
+   macro avg     0.9744    0.9656    0.9689       419
+weighted avg     0.9754    0.9737    0.9737       419

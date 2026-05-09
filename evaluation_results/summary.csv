@@ -1,0 +1,4 @@
+Model,Accuracy,Precision,Recall,F1,very_poor recall
+custom_cnn,0.9499,0.9479,0.9351,0.9399,0.9538
+resnet18,0.9260,0.9158,0.9096,0.9106,1.0000
+mobilenetv2,0.9737,0.9744,0.9656,0.9689,0.9846

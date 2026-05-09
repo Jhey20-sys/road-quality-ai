@@ -15,8 +15,9 @@ from models.custom_cnn import CustomCNN
 from models.resnet18 import get_resnet18
 from models.mobilenetv2 import get_mobilenetv2
 
-# Output folder for evaluation artifacts
-RESULTS_DIR = "evaluation_results"
+# Folders
+MODELS_DIR = "trained_models"               # where train.py saves checkpoints
+RESULTS_DIR = "evaluation_results"          # where this script writes artifacts
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 
@@ -70,12 +71,8 @@ def evaluate_model(model_name, model, weights_path, test_loader):
 
     plt.figure(figsize=(8, 6))
     sns.heatmap(
-        cm,
-        annot=True,
-        fmt="d",
-        cmap="Blues",
-        xticklabels=CLASS_NAMES,
-        yticklabels=CLASS_NAMES
+        cm, annot=True, fmt="d", cmap="Blues",
+        xticklabels=CLASS_NAMES, yticklabels=CLASS_NAMES
     )
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
@@ -90,13 +87,11 @@ def evaluate_model(model_name, model, weights_path, test_loader):
     # Classification report
     report_text = classification_report(
         all_labels, all_preds,
-        target_names=CLASS_NAMES,
-        digits=4
+        target_names=CLASS_NAMES, digits=4
     )
     print("\n📊 Classification Report:")
     print(report_text)
 
-    # Save the classification report as a text file too
     report_path = os.path.join(RESULTS_DIR, f"classification_report_{model_name}.txt")
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(f"Model: {model_name}\n")
@@ -104,12 +99,12 @@ def evaluate_model(model_name, model, weights_path, test_loader):
         f.write(report_text)
     print(f"   📁 Saved: {report_path}")
 
-    # Per-class metrics for comparison
+    # Per-class metrics
     precision, recall, f1, _ = precision_recall_fscore_support(
-        all_labels, all_preds, labels=list(range(len(CLASS_NAMES))), zero_division=0
+        all_labels, all_preds,
+        labels=list(range(len(CLASS_NAMES))), zero_division=0
     )
 
-    # Recall for severely damaged class
     if "very_poor" in CLASS_NAMES:
         vp_idx = CLASS_NAMES.index("very_poor")
         vp_recall = recall[vp_idx]
@@ -133,7 +128,6 @@ def evaluate_model(model_name, model, weights_path, test_loader):
 
 
 def plot_comparison(results):
-    """Side-by-side bar chart comparing key metrics across models."""
     valid = [r for r in results if r is not None]
     if not valid:
         return
@@ -167,7 +161,6 @@ def plot_comparison(results):
     plt.close()
     print(f"\n   📁 Saved: {comp_path}")
 
-    # Per-class recall comparison (especially useful for very_poor)
     fig, ax = plt.subplots(figsize=(10, 6))
     width = 0.8 / len(valid)
     x = np.arange(len(CLASS_NAMES))
@@ -213,12 +206,10 @@ def print_summary(results):
 
     print(df.to_string(index=False))
 
-    # Save the summary table as CSV
     summary_path = os.path.join(RESULTS_DIR, "summary.csv")
     df.to_csv(summary_path, index=False)
     print(f"\n   📁 Saved: {summary_path}")
 
-    # Best by each metric
     print("\nBest per metric:")
     best_acc = max(valid, key=lambda r: r["accuracy"])
     best_f1  = max(valid, key=lambda r: r["f1_macro"])
@@ -237,14 +228,15 @@ def print_summary(results):
 
 
 def evaluate():
-    print(f"\n📂 Output folder: {os.path.abspath(RESULTS_DIR)}\n")
+    print(f"\n📂 Models folder:  {os.path.abspath(MODELS_DIR)}")
+    print(f"📂 Results folder: {os.path.abspath(RESULTS_DIR)}\n")
 
     test_loader = get_test_loader()
 
     configs = [
-        ("custom_cnn",  lambda: CustomCNN(NUM_CLASSES),       "custom_cnn_best.pth"),
-        ("resnet18",    lambda: get_resnet18(NUM_CLASSES),    "resnet18_best.pth"),
-        ("mobilenetv2", lambda: get_mobilenetv2(NUM_CLASSES), "mobilenetv2_best.pth"),
+        ("custom_cnn",  lambda: CustomCNN(NUM_CLASSES),       os.path.join(MODELS_DIR, "custom_cnn_best.pth")),
+        ("resnet18",    lambda: get_resnet18(NUM_CLASSES),    os.path.join(MODELS_DIR, "resnet18_best.pth")),
+        ("mobilenetv2", lambda: get_mobilenetv2(NUM_CLASSES), os.path.join(MODELS_DIR, "mobilenetv2_best.pth")),
     ]
 
     results = []

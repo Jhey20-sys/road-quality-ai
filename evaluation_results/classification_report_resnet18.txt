@@ -1,0 +1,13 @@
+Model: resnet18
+Test Accuracy: 0.9260
+
+              precision    recall  f1-score   support
+
+        good     0.9942    1.0000    0.9971       170
+        poor     0.8657    0.7250    0.7891        80
+satisfactory     0.8333    0.9135    0.8716       104
+   very_poor     0.9701    1.0000    0.9848        65
+
+    accuracy                         0.9260       419
+   macro avg     0.9158    0.9096    0.9106       419
+weighted avg     0.9260    0.9260    0.9243       419

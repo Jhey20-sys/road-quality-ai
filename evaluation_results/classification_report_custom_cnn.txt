@@ -1,0 +1,13 @@
+Model: custom_cnn
+Test Accuracy: 0.9499
+
+              precision    recall  f1-score   support
+
+        good     1.0000    1.0000    1.0000       170
+        poor     0.9296    0.8250    0.8742        80
+satisfactory     0.8621    0.9615    0.9091       104
+   very_poor     1.0000    0.9538    0.9764        65
+
+    accuracy                         0.9499       419
+   macro avg     0.9479    0.9351    0.9399       419
+weighted avg     0.9523    0.9499    0.9497       419
