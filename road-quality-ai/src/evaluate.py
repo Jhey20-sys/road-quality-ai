@@ -15,6 +15,10 @@ from models.custom_cnn import CustomCNN
 from models.resnet18 import get_resnet18
 from models.mobilenetv2 import get_mobilenetv2
 
+# Output folder for evaluation artifacts
+RESULTS_DIR = "evaluation_results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
 
 def get_test_loader():
     transform = transforms.Compose([
@@ -77,9 +81,11 @@ def evaluate_model(model_name, model, weights_path, test_loader):
     plt.ylabel("Actual")
     plt.title(f"Confusion Matrix — {model_name}")
     plt.tight_layout()
-    plt.savefig(f"confusion_matrix_{model_name}.png", dpi=150)
+    cm_path = os.path.join(RESULTS_DIR, f"confusion_matrix_{model_name}.png")
+    plt.savefig(cm_path, dpi=150)
     plt.show()
     plt.close()
+    print(f"   📁 Saved: {cm_path}")
 
     # Classification report
     report_text = classification_report(
@@ -89,6 +95,14 @@ def evaluate_model(model_name, model, weights_path, test_loader):
     )
     print("\n📊 Classification Report:")
     print(report_text)
+
+    # Save the classification report as a text file too
+    report_path = os.path.join(RESULTS_DIR, f"classification_report_{model_name}.txt")
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write(f"Model: {model_name}\n")
+        f.write(f"Test Accuracy: {accuracy:.4f}\n\n")
+        f.write(report_text)
+    print(f"   📁 Saved: {report_path}")
 
     # Per-class metrics for comparison
     precision, recall, f1, _ = precision_recall_fscore_support(
@@ -147,9 +161,11 @@ def plot_comparison(results):
     ax.legend()
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig("model_comparison.png", dpi=150)
+    comp_path = os.path.join(RESULTS_DIR, "model_comparison.png")
+    plt.savefig(comp_path, dpi=150)
     plt.show()
     plt.close()
+    print(f"\n   📁 Saved: {comp_path}")
 
     # Per-class recall comparison (especially useful for very_poor)
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -167,9 +183,11 @@ def plot_comparison(results):
     ax.legend()
     ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig("per_class_recall_comparison.png", dpi=150)
+    recall_path = os.path.join(RESULTS_DIR, "per_class_recall_comparison.png")
+    plt.savefig(recall_path, dpi=150)
     plt.show()
     plt.close()
+    print(f"   📁 Saved: {recall_path}")
 
 
 def print_summary(results):
@@ -195,6 +213,11 @@ def print_summary(results):
 
     print(df.to_string(index=False))
 
+    # Save the summary table as CSV
+    summary_path = os.path.join(RESULTS_DIR, "summary.csv")
+    df.to_csv(summary_path, index=False)
+    print(f"\n   📁 Saved: {summary_path}")
+
     # Best by each metric
     print("\nBest per metric:")
     best_acc = max(valid, key=lambda r: r["accuracy"])
@@ -214,10 +237,10 @@ def print_summary(results):
 
 
 def evaluate():
+    print(f"\n📂 Output folder: {os.path.abspath(RESULTS_DIR)}\n")
+
     test_loader = get_test_loader()
 
-    # (model_name, factory_callable, weights_path)
-    # Uses *_best.pth from training; switch to *_final.pth if you prefer.
     configs = [
         ("custom_cnn",  lambda: CustomCNN(NUM_CLASSES),       "custom_cnn_best.pth"),
         ("resnet18",    lambda: get_resnet18(NUM_CLASSES),    "resnet18_best.pth"),
@@ -235,6 +258,8 @@ def evaluate():
 
     print_summary(results)
     plot_comparison(results)
+
+    print(f"\n✨ All evaluation artifacts saved in: {os.path.abspath(RESULTS_DIR)}")
 
 
 if __name__ == "__main__":
