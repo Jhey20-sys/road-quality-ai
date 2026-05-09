@@ -359,7 +359,7 @@ python src/train.py
 python src/evaluate.py
 
 # Launch the web app
-streamlit run src/app.py
+streamlit run "c:\Users\USER\Downloads\road-quality-ai\road-quality-ai\src\app.py"
 ```
 
 ---
