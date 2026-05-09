@@ -20,10 +20,11 @@ st.set_page_config(
 
 @st.cache_resource
 def load_model():
+    MODELS_DIR = "trained_models"
     WEIGHTS_FILENAME = "mobilenetv2_best.pth"
+    REL_PATH = os.path.join(MODELS_DIR, WEIGHTS_FILENAME)
 
-    # Walk up from app.py's directory until we find the weights file.
-    # Searches: src/, project root, parent, grandparent.
+    # Walk up from app.py's directory until we find trained_models/mobilenetv2_best.pth
     here = os.path.dirname(os.path.abspath(__file__))
     candidates = [here]
     current = here
@@ -33,14 +34,21 @@ def load_model():
 
     MODEL_PATH = None
     for d in candidates:
-        candidate_path = os.path.join(d, WEIGHTS_FILENAME)
+        # Primary: look in <candidate>/trained_models/<weights>
+        candidate_path = os.path.join(d, REL_PATH)
         if os.path.exists(candidate_path):
             MODEL_PATH = candidate_path
+            break
+        # Fallback: also check <candidate>/<weights> directly (legacy layout)
+        legacy_path = os.path.join(d, WEIGHTS_FILENAME)
+        if os.path.exists(legacy_path):
+            MODEL_PATH = legacy_path
             break
 
     if MODEL_PATH is None:
         st.error(
-            f"❌ Could not find `{WEIGHTS_FILENAME}` in any of these directories:\n\n"
+            f"❌ Could not find `{REL_PATH}` (or legacy `{WEIGHTS_FILENAME}`) "
+            "in any of these directories:\n\n"
             + "\n".join(f"- `{d}`" for d in candidates)
         )
         st.stop()
@@ -50,7 +58,6 @@ def load_model():
     model.to(DEVICE)
     model.eval()
     return model
-
 model = load_model()
 
 # Image preprocessing

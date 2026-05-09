@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -6,7 +7,11 @@ from torchvision import datasets, transforms
 from config import *
 from models.custom_cnn import CustomCNN
 from models.resnet18 import get_resnet18
-from models.mobilenetv2 import get_mobilenetv2  # add this module, or swap for another
+from models.mobilenetv2 import get_mobilenetv2
+
+# Output folder for trained model checkpoints
+MODELS_DIR = "trained_models"
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 # Data transforms
 transform = transforms.Compose([
@@ -49,6 +54,9 @@ def train_model(model_name, model, train_loader, val_loader):
     best_val_acc = 0.0
     history = {"train_loss": [], "val_loss": [], "val_acc": []}
 
+    best_path  = os.path.join(MODELS_DIR, f"{model_name}_best.pth")
+    final_path = os.path.join(MODELS_DIR, f"{model_name}_final.pth")
+
     for epoch in range(EPOCHS):
         model.train()
         total_loss = 0.0
@@ -79,21 +87,25 @@ def train_model(model_name, model, train_loader, val_loader):
         # Save best checkpoint per model
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), f"{model_name}_best.pth")
+            torch.save(model.state_dict(), best_path)
 
     # Save final weights too
-    torch.save(model.state_dict(), f"{model_name}_final.pth")
+    torch.save(model.state_dict(), final_path)
     print(f"{model_name} done. Best Val Acc: {best_val_acc:.4f}")
+    print(f"   📁 Saved: {best_path}")
+    print(f"   📁 Saved: {final_path}")
 
     return {"name": model_name, "best_val_acc": best_val_acc, "history": history}
 
 
 # Define the three models to train
 models_to_train = {
-    "custom_cnn": CustomCNN(NUM_CLASSES),
-    "resnet18":   get_resnet18(NUM_CLASSES),
+    "custom_cnn":  CustomCNN(NUM_CLASSES),
+    "resnet18":    get_resnet18(NUM_CLASSES),
     "mobilenetv2": get_mobilenetv2(NUM_CLASSES),
 }
+
+print(f"\n📂 Output folder: {os.path.abspath(MODELS_DIR)}")
 
 results = []
 for name, model in models_to_train.items():
@@ -107,4 +119,5 @@ print("="*50)
 for r in sorted(results, key=lambda x: x["best_val_acc"], reverse=True):
     print(f"{r['name']:15s} | Best Val Acc: {r['best_val_acc']:.4f}")
 
-print("\nAll training complete")
+print(f"\n✨ All checkpoints saved in: {os.path.abspath(MODELS_DIR)}")
+print("Training complete")
