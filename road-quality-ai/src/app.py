@@ -6,7 +6,7 @@ from PIL import Image
 import streamlit as st
 
 from config import *
-from models.resnet18 import get_resnet18
+from models.mobilenetv2 import get_mobilenetv2
 
 # Page config
 
@@ -20,14 +20,33 @@ st.set_page_config(
 
 @st.cache_resource
 def load_model():
-    model = get_resnet18(NUM_CLASSES)
+    WEIGHTS_FILENAME = "mobilenetv2_best.pth"
 
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    MODEL_PATH = os.path.join(BASE_DIR, "model.pth")
+    # Walk up from app.py's directory until we find the weights file.
+    # Searches: src/, project root, parent, grandparent.
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [here]
+    current = here
+    for _ in range(4):
+        current = os.path.dirname(current)
+        candidates.append(current)
 
-    model.load_state_dict(
-        torch.load(MODEL_PATH, map_location=DEVICE)
-    )
+    MODEL_PATH = None
+    for d in candidates:
+        candidate_path = os.path.join(d, WEIGHTS_FILENAME)
+        if os.path.exists(candidate_path):
+            MODEL_PATH = candidate_path
+            break
+
+    if MODEL_PATH is None:
+        st.error(
+            f"❌ Could not find `{WEIGHTS_FILENAME}` in any of these directories:\n\n"
+            + "\n".join(f"- `{d}`" for d in candidates)
+        )
+        st.stop()
+
+    model = get_mobilenetv2(NUM_CLASSES)
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
     model.to(DEVICE)
     model.eval()
     return model
@@ -84,16 +103,12 @@ if uploaded_files:
         images.append(img)
         st.image(img, caption=file.name, width=600)
 
-    # Predict button + loading
-
-    if st.button("🔍 Predict All Images"):
+    if images and st.button("🔍 Predict All Images"):
         with st.spinner("Analyzing road conditions... Please wait"):
             results = predict_batch(images)
 
         st.subheader("☑️ Prediction Results")
 
-        # Display results
-   
         for idx, (label, confidence) in enumerate(results):
             st.markdown(f"### 📌 Image {idx + 1}")
             st.write(f"**Condition:** {label}")
