@@ -1,5 +1,4 @@
 import os
-import math
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
@@ -15,23 +14,34 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# ──────────────────────────────────────────────────────────────
+# CLIP zero-shot OOD configuration
+# ──────────────────────────────────────────────────────────────
+# An image is accepted as a road if the summed softmax probability
+# over ROAD_PROMPTS exceeds CLIP_ROAD_THRESHOLD when compared against
+# all prompts (road + non-road) jointly.
+CLIP_MODEL_ID = "openai/clip-vit-base-patch32"
+CLIP_ROAD_THRESHOLD = 0.55
 
-# OOD (out-of-distribution) detection thresholds
+ROAD_PROMPTS = [
+    "a photograph of an asphalt road surface",
+    "a photograph of pavement with cracks",
+    "a close-up of road surface texture",
+    "a top-down view of a paved road",
+    "a photograph of damaged road pavement",
+]
 
-# An image is rejected as "not a road" if EITHER:
-#   • max class probability falls below CONFIDENCE_THRESHOLD, OR
-#   • prediction entropy exceeds ENTROPY_THRESHOLD
-#
-# Entropy ranges from 0 (fully confident in one class) to log(NUM_CLASSES)
-# (uniform over all classes). For 4 classes, max entropy ≈ 1.386.
-# Tune these higher to reject more aggressively, lower to accept more.
+NON_ROAD_PROMPTS = [
+    "a photograph of a person or face",
+    "a photograph of an indoor room",
+    "a photograph of food or beverages",
+    "a screenshot of a computer screen",
+    "a photograph of nature or wildlife",
+]
 
-CONFIDENCE_THRESHOLD = 0.55
-ENTROPY_THRESHOLD = 1.15
-
-
+# ──────────────────────────────────────────────────────────────
 # Styling
-
+# ──────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -270,13 +280,11 @@ st.markdown("""
     border-radius: 10px;
     padding: 0.4rem;
 }
-
 [data-testid="stFileUploaderDropzone"] {
     background: var(--surface-alt) !important;
     border: none !important;
     border-radius: 8px;
 }
-
 [data-testid="stFileUploaderDropzone"] p,
 [data-testid="stFileUploaderDropzone"] span,
 [data-testid="stFileUploaderDropzone"] small,
@@ -286,8 +294,6 @@ st.markdown("""
 [data-testid="stFileUploaderDropzone"] small {
     color: var(--text-faint) !important;
 }
-
-/* Browse button — ghost style */
 [data-testid="stFileUploader"] button {
     background: var(--surface) !important;
     border: 1px solid var(--text-body) !important;
@@ -503,8 +509,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ──────────────────────────────────────────────────────────────
 # Model loading
-
+# ──────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_model():
     MODELS_DIR = "trained_models"
@@ -540,7 +547,22 @@ def load_model():
     return model
 
 
+@st.cache_resource
+def load_clip():
+    """Load CLIP model and processor for zero-shot OOD detection.
+    First call downloads ~600MB to the Hugging Face cache; subsequent
+    calls are instant.
+    """
+    from transformers import CLIPProcessor, CLIPModel
+    clip_model = CLIPModel.from_pretrained(CLIP_MODEL_ID)
+    clip_processor = CLIPProcessor.from_pretrained(CLIP_MODEL_ID)
+    clip_model.to(DEVICE)
+    clip_model.eval()
+    return clip_model, clip_processor
+
+
 model = load_model()
+clip_model, clip_processor = load_clip()
 
 transform = transforms.Compose([
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
@@ -548,30 +570,69 @@ transform = transforms.Compose([
 ])
 
 
-def predict_batch(images):
+def clip_road_check(pil_image):
+    """Use CLIP zero-shot classification to decide whether the image
+    depicts a road surface.
+
+    Returns:
+        (is_road: bool, road_score: float in [0,1])
+
+    road_score is the summed softmax probability over ROAD_PROMPTS
+    after comparing the image against road + non-road prompts jointly.
     """
+    all_prompts = ROAD_PROMPTS + NON_ROAD_PROMPTS
+    inputs = clip_processor(
+        text=all_prompts,
+        images=pil_image,
+        return_tensors="pt",
+        padding=True,
+    )
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
+
+    with torch.no_grad():
+        outputs = clip_model(**inputs)
+        # logits_per_image: shape (1, num_prompts) — cosine similarity * temperature
+        probs = outputs.logits_per_image.softmax(dim=1)[0]
+
+    road_score = probs[: len(ROAD_PROMPTS)].sum().item()
+    is_road = road_score >= CLIP_ROAD_THRESHOLD
+    return is_road, road_score
+
+
+def predict_batch(images):
+    """For each image: run CLIP OOD check, then (if accepted) run the
+    road-quality classifier.
+
     Returns a list of dicts:
-      { 'label': str|None, 'confidence': float, 'is_road': bool, 'entropy': float }
-    label is None when the image is rejected as not-a-road.
+        { 'label': str|None, 'confidence': float, 'road_score': float,
+          'is_road': bool }
     """
     results = []
     for img in images:
+        # ── Stage 1: CLIP semantic gate ──────────────────────
+        is_road, road_score = clip_road_check(img)
+
+        if not is_road:
+            results.append({
+                'label': None,
+                'confidence': road_score,
+                'road_score': road_score,
+                'is_road': False,
+            })
+            continue
+
+        # ── Stage 2: condition classifier ────────────────────
         image = transform(img).unsqueeze(0).to(DEVICE)
         with torch.no_grad():
             outputs = model(image)
             probs = F.softmax(outputs, dim=1)
             conf, pred = torch.max(probs, 1)
-            entropy = -(probs * torch.log(probs + 1e-10)).sum(dim=1)
-
-        max_conf = conf.item()
-        ent = entropy.item()
-        is_road = (max_conf >= CONFIDENCE_THRESHOLD) and (ent <= ENTROPY_THRESHOLD)
 
         results.append({
-            'label': CLASS_NAMES[pred.item()] if is_road else None,
-            'confidence': max_conf,
-            'is_road': is_road,
-            'entropy': ent,
+            'label': CLASS_NAMES[pred.item()],
+            'confidence': conf.item(),
+            'road_score': road_score,
+            'is_road': True,
         })
     return results
 
@@ -602,7 +663,7 @@ st.markdown("""
 <div class="sys-bar">
   <div class="left">
     <span>ROAD.QC</span>
-    <span class="muted">MOBILENETV2</span>
+    <span class="muted">MOBILENETV2 + CLIP</span>
   </div>
   <div class="sys-status">
     <span class="sys-status-dot"></span>
@@ -612,7 +673,7 @@ st.markdown("""
 
 <div class="hero-eyebrow">PAVEMENT CONDITION ASSESSMENT</div>
 <div class="hero-title">Inspect road surface integrity.</div>
-<div class="hero-sub">Upload pavement imagery for automated condition classification. Each input is scored across four severity classes with confidence weighting and remediation guidance. Images not recognized as road surfaces are flagged and skipped.</div>
+<div class="hero-sub">Upload pavement imagery for automated condition classification. Each input is first verified as a road surface via zero-shot semantic matching, then scored across four severity classes.</div>
 
 <div class="legend">
   <div class="legend-title">CLASSIFICATION REFERENCE</div>
@@ -634,7 +695,7 @@ st.markdown("""
   </div>
   <div class="legend-row">
     <div class="legend-key"><span class="dot dot-unknown"></span>Unrecognized</div>
-    <div class="legend-desc">Image does not appear to be a road</div>
+    <div class="legend-desc">Image not identified as a road</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -662,30 +723,35 @@ if uploaded_files:
             st.image(img, use_container_width=True)
 
     if st.button("Execute Analysis"):
-        with st.spinner("Processing..."):
+        with st.spinner("Verifying inputs and processing..."):
             results = predict_batch(images)
 
         st.markdown('<div class="section-h"><span class="num">03</span><span>ASSESSMENT</span></div>', unsafe_allow_html=True)
 
         for idx, res in enumerate(results):
             pct = res['confidence'] * 100
+            road_pct = res['road_score'] * 100
             filename = uploaded_files[idx].name
 
             if res['is_road']:
                 name, name_caps, key, note = LABEL_META[res['label']]
                 bar_html = confidence_bar(pct, key)
                 card_class = "report"
+                conf_caption = "CONFIDENCE"
+                conf_value_pct = pct
             else:
                 name = "Unrecognized"
                 name_caps = "NOT A ROAD"
                 key = "unknown"
                 note = (
-                    "Image does not appear to contain a road surface. "
-                    "The model could not classify it with sufficient confidence. "
-                    "Please upload a clear pavement image."
+                    f"Image does not appear to contain a road surface "
+                    f"(road match score {road_pct:.1f}%). Please upload a "
+                    f"clear pavement image."
                 )
-                bar_html = confidence_bar(pct, key)
+                bar_html = confidence_bar(road_pct, key)
                 card_class = "report report-rejected"
+                conf_caption = "ROAD MATCH"
+                conf_value_pct = road_pct
 
             st.markdown(f"""
             <div class="{card_class}">
@@ -700,8 +766,8 @@ if uploaded_files:
                 </div>
               </div>
               <div class="conf-header">
-                <span class="conf-label">CONFIDENCE</span>
-                <span class="conf-value">{pct:.1f}%</span>
+                <span class="conf-label">{conf_caption}</span>
+                <span class="conf-value">{conf_value_pct:.1f}%</span>
               </div>
               {bar_html}
               <p class="report-note">{note}</p>
