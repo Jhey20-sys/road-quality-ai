@@ -15,9 +15,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ──────────────────────────────────────────────────────────────
+
 # OOD (out-of-distribution) detection thresholds
-# ──────────────────────────────────────────────────────────────
+
 # An image is rejected as "not a road" if EITHER:
 #   • max class probability falls below CONFIDENCE_THRESHOLD, OR
 #   • prediction entropy exceeds ENTROPY_THRESHOLD
@@ -25,12 +25,13 @@ st.set_page_config(
 # Entropy ranges from 0 (fully confident in one class) to log(NUM_CLASSES)
 # (uniform over all classes). For 4 classes, max entropy ≈ 1.386.
 # Tune these higher to reject more aggressively, lower to accept more.
+
 CONFIDENCE_THRESHOLD = 0.55
 ENTROPY_THRESHOLD = 1.15
 
-# ──────────────────────────────────────────────────────────────
+
 # Styling
-# ──────────────────────────────────────────────────────────────
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -502,9 +503,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ──────────────────────────────────────────────────────────────
 # Model loading
-# ──────────────────────────────────────────────────────────────
+
 @st.cache_resource
 def load_model():
     MODELS_DIR = "trained_models"
