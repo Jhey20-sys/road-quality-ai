@@ -20,6 +20,7 @@ st.set_page_config(
 # An image is accepted as a road if the summed softmax probability
 # over ROAD_PROMPTS exceeds CLIP_ROAD_THRESHOLD when compared against
 # all prompts (road + non-road) jointly.
+
 CLIP_MODEL_ID = "openai/clip-vit-base-patch32"
 CLIP_ROAD_THRESHOLD = 0.55
 
